@@ -1,11 +1,7 @@
 const express = require("express");
-const dotenv = require("dotenv");
+require("dotenv").config();
 const connectDB = require("./src/config/db");
-
-dotenv.config();
-connectDB();
-
-const app = express();
+const app = require("./src/app");
 
 // middleware
 app.use(express.json());
@@ -18,6 +14,11 @@ app.get("/", (req, res) => {
   res.send("Server is running 🚀");
 });
 
-app.listen(5000, () => {
-  console.log("Server running on port 5000");
+// Connect to database
+connectDB();
+
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT} in ${process.env.NODE_ENV} mode 🚀`);
 });
