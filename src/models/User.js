@@ -47,12 +47,9 @@ const userSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Pre-save hook: hash password using bcryptjs salt 10, only if password is modified
-userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
-  
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-  next();
+userSchema.pre("save", async function() {
+  if (!this.isModified("password")) return;
+  this.password = await bcrypt.hash(this.password, 10);
 });
 
 // Instance method: comparePassword(plainPassword) using bcrypt.compare
