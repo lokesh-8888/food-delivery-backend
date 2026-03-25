@@ -3,6 +3,7 @@ const Order = require("../../models/Order");
 const User = require("../../models/User");
 const { ApiResponse, ApiError } = require("../../utils/ApiResponse");
 const asyncHandler = require("../../utils/asyncHandler");
+const { getIO } = require("../../socket/socket");
 
 const getProfile = asyncHandler(async (req, res) => {
   // Find DeliveryAgent where user: req.user.id
@@ -112,6 +113,13 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
   }
   
   await order.save();
+  
+  // Emit order_status_changed to order room
+  const io = getIO();
+  io.to(`order_${order._id}`).emit("order_status_changed", { 
+    orderId: order._id, 
+    status: order.status 
+  });
   
   // Return ApiResponse(200, { order }, "Order status updated successfully")
   res.status(200).json(new ApiResponse(200, { order }, "Order status updated successfully"));

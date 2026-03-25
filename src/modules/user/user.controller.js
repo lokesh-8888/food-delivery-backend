@@ -6,6 +6,7 @@ const Review = require("../../models/Review");
 const Coupon = require("../../models/Coupon");
 const { ApiResponse, ApiError } = require("../../utils/ApiResponse");
 const asyncHandler = require("../../utils/asyncHandler");
+const { getIO } = require("../../socket/socket");
 
 const getProfile = asyncHandler(async (req, res) => {
   // Find user by req.user.id excluding password field
@@ -181,6 +182,10 @@ const placeOrder = asyncHandler(async (req, res) => {
       activeOrder: order._id
     });
   }
+  
+  // Emit new_order event to restaurant room
+  const io = getIO();
+  io.to(`restaurant_${restaurantId}`).emit("new_order", { order });
   
   // Return ApiResponse(201, { order }, "Order placed successfully")
   res.status(201).json(new ApiResponse(201, { order }, "Order placed successfully"));
