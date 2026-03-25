@@ -24,6 +24,10 @@ app.get("/", (req, res) => {
 app.use(helmet());
 app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
 app.use(morgan("dev"));
+
+// Webhook route needs raw body not parsed JSON - BEFORE express.json()
+app.use("/api/v1/payment/webhook", express.raw({ type: "application/json" }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
