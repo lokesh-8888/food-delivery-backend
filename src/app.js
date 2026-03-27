@@ -3,6 +3,9 @@ const helmet = require("helmet");
 const cors = require("cors");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
+const rateLimit = require("express-rate-limit");
+const compression = require("compression");
+const logger = require("./config/logger");
 
 
 // Import routes
@@ -12,6 +15,7 @@ const restaurantRoutes = require("./modules/restaurant/restaurant.routes");
 const deliveryRoutes = require("./modules/delivery/delivery.routes");
 const paymentRoutes = require("./modules/payment/payment.routes");
 const adminRoutes = require("./modules/admin/admin.routes");
+const { requestLogger } = require("./middlewares/logger.middleware");
 
 const app = express();
 // Base route
@@ -19,11 +23,56 @@ app.get("/", (req, res) => {
   res.json({ success: true, message: "Food Delivery API is running 🚀" });
 });
 
+// Add health check endpoint
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Server is healthy",
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV
+  });
+});
+
 
 // Apply middlewares in exact order
-app.use(helmet());
-app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
-app.use(morgan("dev"));
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: false
+}));
+app.use(compression());
+
+// Update CORS to handle both development and production
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  "http://localhost:3000",
+  "http://localhost:5173"
+];
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true
+}));
+
+// Replace morgan("dev") with custom Morgan + Winston integration
+app.use(morgan("combined", {
+  stream: {
+    write: (message) => logger.info(message.trim())
+  }
+}));
+
+// Add express-rate-limit global limiter
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { success: false, message: "Too many requests, please try again later" }
+});
+app.use("/api/v1/", globalLimiter);
 
 // Webhook route needs raw body not parsed JSON - BEFORE express.json()
 app.use("/api/v1/payment/webhook", express.raw({ type: "application/json" }));
@@ -31,6 +80,9 @@ app.use("/api/v1/payment/webhook", express.raw({ type: "application/json" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// Add request logging middleware after Morgan
+app.use(requestLogger);
 
 
 // Mount all routes under /api/v1/
@@ -44,6 +96,9 @@ app.use("/api/v1/admin", adminRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {
+  // Update global error handler to use Winston logger
+  logger.error(`${err.statusCode || 500} — ${err.message} — ${req.originalUrl} — ${req.method} — ${req.ip}`);
+
   let error = { ...err };
   error.message = err.message;
 

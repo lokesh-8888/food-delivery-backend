@@ -5,6 +5,7 @@ const User = require("../../models/User");
 const { ApiResponse, ApiError } = require("../../utils/ApiResponse");
 const asyncHandler = require("../../utils/asyncHandler");
 const { getIO } = require("../../socket/socket");
+const { sanitizeInput } = require("../../utils/sanitize");
 
 const createRestaurant = asyncHandler(async (req, res) => {
   // Check if restaurant already exists for req.user.id → throw ApiError(400, "Restaurant already exists for this owner")
@@ -16,7 +17,7 @@ const createRestaurant = asyncHandler(async (req, res) => {
   // Create restaurant with owner: req.user.id
   const restaurant = await Restaurant.create({
     owner: req.user.id,
-    ...req.body
+    ...sanitizeInput(req.body)
   });
   
   // Return ApiResponse(201, { restaurant }, "Restaurant created successfully")
@@ -33,7 +34,7 @@ const updateRestaurant = asyncHandler(async (req, res) => {
   }
   
   // Allowed fields: name, phone, email, cuisine, address
-  const { name, phone, email, cuisine, address } = req.body;
+  const { name, phone, email, cuisine, address } = sanitizeInput(req.body);
   const updateData = {};
   
   if (name) updateData.name = name;

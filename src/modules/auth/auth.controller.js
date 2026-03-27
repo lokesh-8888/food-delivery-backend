@@ -4,6 +4,7 @@ const { ApiResponse, ApiError } = require("../../utils/ApiResponse");
 const asyncHandler = require("../../utils/asyncHandler");
 const { validationResult } = require("express-validator");
 const jwt = require("jsonwebtoken");
+const { sanitizeInput } = require("../../utils/sanitize");
 
 const register = asyncHandler(async (req, res) => {
   // Check validationResult(req) — if errors exist → throw ApiError(400, "Validation failed", errors.array())
@@ -12,7 +13,7 @@ const register = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Validation failed", errors.array());
   }
 
-  const { name, email, password, phone, role } = req.body;
+  const { name, email, password, phone, role } = sanitizeInput(req.body);
 
   // Check if user with same email exists → throw ApiError(409, "Email already registered")
   const existingUser = await User.findOne({ email });
@@ -27,8 +28,8 @@ const register = asyncHandler(async (req, res) => {
     password,
     phone,
     role: role || "user"
-});
-await newUser.save();
+  });
+  await newUser.save();
 
   // If role is "delivery_agent" → also create DeliveryAgent document with { user: newUser._id }
   if (newUser.role === "delivery_agent") {
@@ -58,7 +59,7 @@ const login = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Validation failed", errors.array());
   }
 
-  const { email, password } = req.body;
+  const { email, password } = sanitizeInput(req.body);
 
   // Find user by email → not found → throw ApiError(404, "User not found")
   const user = await User.findOne({ email });

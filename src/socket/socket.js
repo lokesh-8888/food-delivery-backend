@@ -15,23 +15,27 @@ function initSocket(server) {
   // JWT authentication middleware
   io.use((socket, next) => {
     try {
-      let token = socket.handshake.auth.token;
-      
-      // If token not found in auth, try to get from cookie
+      let token = socket.handshake.auth?.token;
+
+      // Fallback to query param (?token=...) — for Postman testing
+      if (!token && socket.handshake.query?.token) {
+        token = socket.handshake.query.token;
+      }
+
+      // Fallback to cookie
       if (!token && socket.handshake.headers.cookie) {
         const cookies = socket.handshake.headers.cookie.split(';').reduce((acc, cookie) => {
           const [key, value] = cookie.trim().split('=');
           acc[key] = value;
           return acc;
         }, {});
-        
         token = cookies.token;
       }
-      
+
       if (!token) {
         return next(new Error("Unauthorized - No token provided"));
       }
-      
+
       // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       socket.user = decoded; // contains id, role, name
@@ -56,12 +60,12 @@ function initSocket(server) {
       if (socket.user.role !== "delivery_agent") {
         return socket.emit("error", { message: "Unauthorized - Only delivery agents can update location" });
       }
-      
+
       // Validate lat and lng are numbers
       if (typeof lat !== "number" || typeof lng !== "number") {
         return socket.emit("error", { message: "Invalid coordinates" });
       }
-      
+
       // Emit agent_location to order room
       io.to(`order_${orderId}`).emit("agent_location", {
         lat,

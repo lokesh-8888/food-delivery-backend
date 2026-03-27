@@ -7,6 +7,7 @@ const Coupon = require("../../models/Coupon");
 const { ApiResponse, ApiError } = require("../../utils/ApiResponse");
 const asyncHandler = require("../../utils/asyncHandler");
 const { getIO } = require("../../socket/socket");
+const { sanitizeInput } = require("../../utils/sanitize");
 
 const getProfile = asyncHandler(async (req, res) => {
   // Find user by req.user.id excluding password field
@@ -43,12 +44,9 @@ const getRestaurants = asyncHandler(async (req, res) => {
   // Build query
   let query = { isApproved: true, isOpen: true };
   
-  // Support optional query param ?search= that searches restaurant name or cuisine using MongoDB regex
+  // Replace basic regex search with MongoDB text search
   if (search) {
-    query.$or = [
-      { name: { $regex: search, $options: 'i' } },
-      { cuisine: { $regex: search, $options: 'i' } }
-    ];
+    query.$text = { $search: search };
   }
   
   // Support optional query param ?city= that filters by address.city
@@ -83,7 +81,7 @@ const getRestaurantMenu = asyncHandler(async (req, res) => {
 });
 
 const placeOrder = asyncHandler(async (req, res) => {
-  const { restaurantId, items, deliveryAddress, paymentMethod, couponCode } = req.body;
+  const { restaurantId, items, deliveryAddress, paymentMethod, couponCode } = sanitizeInput(req.body);
   
   // Validate request body has restaurantId, items array, deliveryAddress, paymentMethod
   if (!restaurantId || !items || !Array.isArray(items) || items.length === 0 || !deliveryAddress || !paymentMethod) {
