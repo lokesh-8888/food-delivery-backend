@@ -11,6 +11,7 @@ Sentry.init({
 const connectDB = require("./src/config/db");
 const app = require("./src/app");
 const http = require("http");
+
 const mongoose = require("mongoose");
 const { initSocket } = require("./src/socket/socket");
 const { startJobs } = require("./src/jobs/jobs");
@@ -20,7 +21,9 @@ const { createIndexes } = require("./src/config/indexes");
 connectDB();
 
 // Create MongoDB text indexes
-createIndexes();
+createIndexes().catch(err => {
+  console.error("Failed to create indexes:", err);
+});
 
 const PORT = process.env.PORT || 5000;
 

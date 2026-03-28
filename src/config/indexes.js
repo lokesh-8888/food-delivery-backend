@@ -3,24 +3,43 @@ const logger = require("./logger");
 
 async function createIndexes() {
   try {
-    // Create text index on Restaurant: { name: "text", cuisine: "text" }
+    // First, drop any existing text indexes to avoid conflicts
+    try {
+      await Restaurant.collection.dropIndex("restaurant_text_search");
+      logger.info("Dropped existing restaurant_text_search index");
+    } catch (err) {
+      // Index doesn't exist, which is fine
+    }
+    
+    try {
+      await Restaurant.collection.dropIndex("menu_text_search");
+      logger.info("Dropped existing menu_text_search index");
+    } catch (err) {
+      // Index doesn't exist, which is fine
+    }
+
+    // Create a single comprehensive text index on Restaurant
     await Restaurant.collection.createIndex({
       name: "text",
-      cuisine: "text"
-    }, {
-      name: "restaurant_text_search"
-    });
-
-    // Create text index on Restaurant menu items: { "menu.name": "text" }
-    await Restaurant.collection.createIndex({
+      cuisine: "text",
       "menu.name": "text"
     }, {
-      name: "menu_text_search"
+      name: "restaurant_comprehensive_search",
+      weights: {
+        name: 10,
+        cuisine: 5,
+        "menu.name": 8
+      }
     });
 
-    logger.info("MongoDB text indexes created successfully");
+    logger.info("MongoDB comprehensive text index created successfully");
   } catch (error) {
-    logger.error("Error creating MongoDB indexes:", error);
+    // If index already exists, that's okay
+    if (error.code === 85) {
+      logger.info("Text index already exists, skipping creation");
+    } else {
+      logger.error("Error creating MongoDB indexes:", error);
+    }
   }
 }
 
