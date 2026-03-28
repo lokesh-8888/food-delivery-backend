@@ -50,10 +50,10 @@ A comprehensive food delivery backend API built with Node.js, Express, MongoDB, 
    cp .env.example .env
    ```
    
-   Configure the following environment variables:
+   Configure the following environment variables (see `.env.example` for all required variables):
    ```env
    PORT=5000
-   MONGO_URI=mongodb://localhost:27017/foodDB
+   MONGO_URI=your_mongodb_connection_string
    JWT_SECRET=your-super-secret-jwt-key
    JWT_EXPIRES_IN=7d
    NODE_ENV=development
@@ -166,6 +166,8 @@ npm run lint
 | `RAZORPAY_KEY_SECRET` | Razorpay secret key | Yes |
 | `RAZORPAY_WEBHOOK_SECRET` | Webhook secret | Yes |
 | `SENTRY_DSN` | Sentry error tracking DSN | Optional |
+
+> **⚠️ Security Note**: Never commit actual values to version control. Use `.env.example` as a template only.
 
 ## 🚀 Deployment
 
