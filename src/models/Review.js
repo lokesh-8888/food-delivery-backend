@@ -13,7 +13,7 @@ const reviewSchema = new mongoose.Schema({
   },
   deliveryAgent: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "DeliveryAgent",
+    ref: "User",
     default: null,
   },
   order: {

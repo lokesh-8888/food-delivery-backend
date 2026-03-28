@@ -122,7 +122,7 @@ const placeOrder = asyncHandler(async (req, res) => {
       code: couponCode.toUpperCase(),
       isActive: true,
       expiryDate: { $gt: new Date() },
-      usedCount: { $lt: '$usageLimit' }
+      $expr: { $lt: ['$usedCount', '$usageLimit'] }
     });
     
     // If coupon not found or expired → throw ApiError(400, "Invalid or expired coupon")
